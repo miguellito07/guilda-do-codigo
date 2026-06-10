@@ -137,8 +137,15 @@
     .gc-desc{font-size:.6rem;color:var(--muted);padding:0 .4rem .25rem;
       font-style:italic;flex-shrink:0;line-height:1.4}
 
-    /* When card has image: hide desc to save space, show it in tooltip on hover */
-    .gcard.has-img .gc-desc{display:none}
+    /* When card has image: show desc below art with fade-in gradient background */
+    .gcard.has-img .gc-desc{
+      display:block;
+      font-size:.55rem;color:var(--muted);
+      padding:.3rem .4rem .28rem;
+      font-style:italic;line-height:1.4;
+      background:linear-gradient(180deg,#12121f,var(--bg-card));
+      border-bottom:1px solid var(--gold-dark);
+    }
 
     .gc-effects{display:flex;flex-direction:column;gap:.12rem;padding:.2rem .4rem .25rem}
     .gc-eff{font-size:.54rem;padding:.12rem .28rem;display:flex;gap:.2rem;
@@ -1019,26 +1026,54 @@ function loadAudioFromStorage(){
 }
 
 // Try loading audio from relative paths (files next to the HTML)
-// This is the primary mechanism for classroom deployment
+// This is the primary mechanism for classroom/web deployment.
+// Always attempts relative paths — localStorage data may be stale or from another session.
 function tryLoadRelativeAudio(){
   ['menu','game'].forEach(type=>{
-    if(AUD.tracks[type]) return; // already loaded from localStorage
     const candidates = AUDIO_FILES[type];
     let idx = 0;
+    let timeout = null;
+
     function tryNext(){
       if(idx >= candidates.length) return;
       const el = audEl(type);
       const filename = candidates[idx++];
-      el.src = filename;
-      el.oncanplaythrough = () => {
+
+      // Clear previous handlers and any pending timeout
+      el.oncanplay = null;
+      el.onerror   = null;
+      if(timeout){ clearTimeout(timeout); timeout = null; }
+
+      el.oncanplay = () => {
+        el.oncanplay = null;
+        el.onerror   = null;
+        if(timeout){ clearTimeout(timeout); timeout = null; }
         const name = filename.replace(/\.[^.]+$/,'');
+        // Relative file wins — overrides anything from localStorage
         AUD.tracks[type] = { name, dataUrl: filename, isRelative: true };
-        el.volume = AUD.volume;
+        el.volume = AUD.muted ? 0 : AUD.volume;
         updateWidget();
-        renderConfigure();
+        if(document.getElementById('cfg-content')?.innerHTML) renderConfigure();
       };
-      el.onerror = tryNext;
+
+      el.onerror = () => {
+        el.oncanplay = null;
+        el.onerror   = null;
+        if(timeout){ clearTimeout(timeout); timeout = null; }
+        tryNext();
+      };
+
+      el.src = filename;
+      el.load(); // ← required on file:// to actually start fetching
+
+      // Fallback: if neither event fires within 3s, try next candidate
+      timeout = setTimeout(()=>{
+        el.oncanplay = null;
+        el.onerror   = null;
+        tryNext();
+      }, 3000);
     }
+
     tryNext();
   });
 }
@@ -1993,6 +2028,37 @@ function renderConfigure(){
   document.getElementById('cfg-content').innerHTML = html;
 }
 
+// ── Download helper — funciona em file://, http:// e GitHub Pages (CSP restrito)
+function safeDownload(content, filename, mimeType){
+  try {
+    // Tenta Blob URL primeiro (mais eficiente para arquivos grandes)
+    const blob = new Blob([content], {type: mimeType + ';charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=> URL.revokeObjectURL(url), 15000);
+  } catch(e){
+    // Fallback: data URI (funciona mesmo com CSP bloqueando Blob URLs)
+    try {
+      const encoded = 'data:' + mimeType + ';charset=utf-8,' + encodeURIComponent(content);
+      const a = document.createElement('a');
+      a.href     = encoded;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch(e2){
+      toast('⚠️ Download automático bloqueado. Abra o console e copie manualmente.','err');
+    }
+  }
+}
+
 function exportAll(){
   // ── 1. Collect data
   const imgs = {};
@@ -2058,19 +2124,10 @@ function exportAll(){
     cleanBody + '\n' +
     '</body>\n</html>';
 
-  // ── 6. Download via Blob URL
-  // Blob URLs work fine for <a download> even on file:// — only audio/img src was blocked
-  const blob = new Blob([exported], {type:'text/html;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'guilda-do-codigo-completo.html';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+  // ── 6. Download
+  safeDownload(exported, 'guilda-do-codigo-completo.html', 'text/html');
 
-  const sz = (blob.size/1024/1024).toFixed(1);
+  const sz = (new Blob([exported]).size/1024/1024).toFixed(1);
   toast('Arquivo exportado (' + sz + 'MB)! ✓','ok');
 
   const hasMusic = AUD.tracks['menu'] || AUD.tracks['game'];
@@ -2325,6 +2382,25 @@ function calcPersonaBonus(){
 // ── Chamar Cliente ────────────────────────────────────────────
 let _clienteTimerIv = null;
 let _clienteSecsLeft = 180; // 3 minutes
+
+function setWireframeView(view){
+  const phone   = document.getElementById('wf-phone');
+  const desktop = document.getElementById('wf-desktop');
+  const btnP    = document.getElementById('wf-btn-phone');
+  const btnD    = document.getElementById('wf-btn-desktop');
+  if(!phone||!desktop) return;
+  if(view==='phone'){
+    phone.style.display='flex';
+    desktop.style.display='none';
+    btnP.style.background='var(--gold)';   btnP.style.color='var(--bg)';
+    btnD.style.background='transparent';   btnD.style.color='var(--muted)';
+  } else {
+    phone.style.display='none';
+    desktop.style.display='block';
+    btnD.style.background='var(--gold)';   btnD.style.color='var(--bg)';
+    btnP.style.background='transparent';   btnP.style.color='var(--muted)';
+  }
+}
 
 function chamarCliente(){
   if(S.personaCallUsed){ toast('O cliente já foi chamado neste jogo.','err'); return; }
@@ -2615,6 +2691,185 @@ function renderClienteScreen(){
   }
 
   const hasAnything = allSelected.length > 0;
+  // ── Desktop wireframe ────────────────────────────────────
+  function wireDesktopTopNav(){
+    return `<div style="background:#0d0d1e;border-bottom:1px solid #2a2a40;
+      padding:.3rem .6rem;display:flex;align-items:center;gap:.5rem">
+      <span style="font-family:'Cinzel',serif;font-size:.52rem;color:var(--gold)">${S.appName||'MeuApp'}</span>
+      <div style="flex:1;display:flex;gap:.35rem;margin-left:.5rem">
+        ${['Início','Dados','Histórico','Configurações'].map((l,i)=>
+          `<span style="font-size:.42rem;padding:.1rem .3rem;${i===0?'color:#c9a84c;border-bottom:1px solid #c9a84c':'color:#555'}">${l}</span>`
+        ).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:.4rem">
+        ${has('filtro')||has('lupa_encantada')?`<div style="background:#13132a;border:1px solid #2a2a40;
+          border-radius:4px;padding:.1rem .3rem;display:flex;gap:.2rem;align-items:center">
+          <span style="font-size:.45rem">🔍</span>
+          <span style="font-size:.38rem;color:#444">Buscar…</span>
+        </div>`:''}
+        ${has('mensageiro')?`<span style="font-size:.6rem;position:relative">🔔
+          <span style="position:absolute;top:-2px;right:-2px;background:#c94c9a;
+            border-radius:50%;width:5px;height:5px;display:block"></span></span>`:''}
+        ${has('forja')?`<span style="font-size:.55rem">🌗</span>`:''}
+        ${has('escudo')||has('estandarte')?`<div style="width:16px;height:16px;border-radius:50%;
+          background:linear-gradient(135deg,#c9a84c,#7b4cc9);
+          display:flex;align-items:center;justify-content:center;font-size:.55rem">👤</div>`:''}
+      </div>
+    </div>`;
+  }
+
+  function wireDesktopSidebar(){
+    const items = [
+      {i:'🏠',l:'Início',a:true},
+      {i:'📊',l:'Relatórios',   c:has('oraculo')||has('balanca')},
+      {i:'⌛',l:'Histórico',    c:has('ampulheta')},
+      {i:'📚',l:'Categorias',   c:has('biblioteca')},
+      {i:'🏆',l:'Conquistas',   c:has('codigo_honra')},
+      {i:'⭐',l:'Favoritos',    c:has('relicario')},
+      {i:'⚙️',l:'Config.',      c:has('chave')},
+    ].filter(x=>x.a||x.c);
+    return `<div style="width:72px;background:#0d0d1e;border-right:1px solid #2a2a40;
+      display:flex;flex-direction:column;gap:0;flex-shrink:0">
+      ${items.map((n,i)=>`<div style="padding:.35rem .25rem;display:flex;flex-direction:column;
+        align-items:center;gap:.1rem;border-bottom:1px solid #13132a;
+        ${i===0?'background:#c9a84c15;border-left:2px solid #c9a84c':''}">
+        <span style="font-size:.7rem">${n.i}</span>
+        <span style="font-size:.36rem;color:${i===0?'#c9a84c':'#555'}">${n.l}</span>
+      </div>`).join('')}
+      ${has('arauto')?`<div style="margin-top:auto;padding:.3rem;text-align:center">
+        <div style="background:#7b4cc9;border-radius:50%;width:14px;height:14px;
+          margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:.5rem">💡</div>
+        <div style="font-size:.34rem;color:#555;margin-top:.1rem">Ajuda</div>
+      </div>`:''}
+    </div>`;
+  }
+
+  function wireDesktopMain(){
+    return `<div style="flex:1;overflow:hidden;padding:.4rem;display:flex;flex-direction:column;gap:.3rem">
+      ${has('portal_entrada')?`<div style="background:linear-gradient(135deg,#1a1a3e,#2a1a4e);
+        padding:.4rem .6rem;display:flex;align-items:center;gap:.5rem;border-radius:2px">
+        <span style="font-size:.8rem">👋</span>
+        <div>
+          <div style="font-size:.48rem;color:#a080e0;font-family:'Cinzel',serif">Bem-vindo!</div>
+          <div style="font-size:.4rem;color:#555">Configure seu perfil para começar</div>
+        </div>
+        ${has('arauto')?`<div style="margin-left:auto;background:#7b4cc920;border:1px solid #7b4cc9;
+          padding:.1rem .25rem;font-size:.38rem;color:#a080e0">💡 Tour rápido</div>`:''}
+      </div>`:''}
+
+      ${has('espelho')||has('oraculo_menor')?`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.25rem">
+        ${[{i:'📈',l:'Total',v:'142',c:'#4cc98a'},{i:'⭐',l:'Metas',v:'8/10',c:'#c9a84c'},
+           {i:'📅',l:'Esta semana',v:'23',c:'#4a8cbf'},{i:'🔮',l:'Pendentes',v:'5',c:'#9b59b6'}]
+          .map(s=>`<div style="background:#13132a;border:1px solid #2a2a40;border-top:2px solid ${s.c};
+            padding:.3rem .4rem">
+            <div style="font-size:.55rem">${s.i}</div>
+            <div style="font-size:.6rem;color:${s.c};font-family:'Cinzel',serif">${s.v}</div>
+            <div style="font-size:.36rem;color:#555">${s.l}</div>
+          </div>`).join('')}
+      </div>`:''}
+
+      <div style="display:grid;grid-template-columns:${has('oraculo')||has('balanca')?'1fr 1fr':'1fr'};gap:.3rem">
+        ${has('oraculo')||has('balanca')?`<div style="background:#0d0d1e;border:1px solid #2a2a40;padding:.35rem">
+          <div style="font-size:.4rem;color:#888;margin-bottom:.2rem">
+            ${has('balanca')?'📊 Comparativo':'📈 Evolução Semanal'}
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:.1rem;height:35px">
+            ${[60,85,40,90,55,75,95].map((h,i)=>`<div style="flex:1;background:${i===6?'#c9a84c':'#2a2a40'};
+              height:${h}%;border-radius:1px 1px 0 0"></div>`).join('')}
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:.12rem">
+            ${['S','T','Q','Q','S','S','D'].map(d=>`<span style="font-size:.32rem;color:#333">${d}</span>`).join('')}
+          </div>
+        </div>`:''}
+
+        <div style="background:#0d0d1e;border:1px solid #2a2a40;padding:.35rem;display:flex;flex-direction:column;gap:.2rem">
+          ${has('bussola')?`<div>
+            <div style="display:flex;justify-content:space-between;font-size:.38rem;color:#666">
+              <span>Meta semanal</span><span>72%</span></div>
+            <div style="background:#1a1a2e;height:4px;border-radius:2px;margin-top:.1rem">
+              <div style="background:#4cc98a;height:100%;width:72%;border-radius:2px"></div></div>
+          </div>`:''}
+          ${has('ampulheta')||has('arquivo')?
+            ['Item recente 1','Item recente 2','Item recente 3'].map(t=>`
+            <div style="display:flex;align-items:center;gap:.3rem;padding:.18rem 0;
+              border-bottom:1px solid #13132a">
+              <span style="font-size:.5rem">${has('arquivo')?'🗄️':'📌'}</span>
+              <span style="font-size:.4rem;color:#888;flex:1">${t}</span>
+              ${has('relicario')?`<span style="font-size:.45rem;color:#444">☆</span>`:''}
+              ${has('heraldo')?`<span style="font-size:.45rem;color:#444">📢</span>`:''}
+            </div>`).join(''):''}
+          ${has('pedra')?`<div style="background:linear-gradient(135deg,#1a0a2e,#2a0a4e);
+            border:1px solid #7b4cc940;padding:.25rem;display:flex;gap:.25rem;align-items:center;margin-top:.1rem">
+            <span style="font-size:.6rem">💎</span>
+            <span style="font-size:.38rem;color:#a080e0">Sugestão: reveja suas metas de quinta-feira</span>
+          </div>`:''}
+        </div>
+      </div>
+
+      ${has('contrato')?`<div style="background:#0d0d1e;border:1px solid #2a2a40;padding:.35rem">
+        <div style="font-size:.4rem;color:#888;margin-bottom:.2rem">📋 Novo registro</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.2rem">
+          ${['Nome','Valor','Categoria'].map(f=>`<div>
+            <div style="font-size:.36rem;color:#444;margin-bottom:.1rem">${f}</div>
+            <div style="background:#13132a;border:1px solid #2a2a40;height:10px;border-radius:2px"></div>
+          </div>`).join('')}
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:.25rem;gap:.2rem">
+          ${has('grimorio')?`<div style="background:#4cc98a20;border:1px solid #4cc98a;
+            padding:.1rem .3rem;font-size:.38rem;color:#4cc98a">📖 Exportar</div>`:''}
+          <div style="background:#c9a84c;padding:.1rem .3rem;font-size:.38rem;color:#0d0d1e;
+            font-family:'Cinzel',serif">Salvar</div>
+        </div>
+      </div>`:''}
+
+      ${has('portal')||has('sincronismo')?`<div style="background:#4a8cbf10;border:1px solid #4a8cbf30;
+        padding:.3rem .4rem;display:flex;align-items:center;gap:.4rem">
+        <span style="font-size:.6rem">🌀</span>
+        <span style="font-size:.4rem;color:#4a8cbf;flex:1">Google Agenda sincronizado</span>
+        ${has('sincronismo')?`<span style="font-size:.5rem;color:#4cc98a">🔄 Atualizado agora</span>`:''}
+      </div>`:''}
+    </div>`;
+  }
+
+  function wireDesktopStatusBar(){
+    return `<div style="background:#080811;border-top:1px solid #2a2a40;
+      padding:.2rem .6rem;display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;gap:.4rem">
+        ${has('guardiao')?`<span style="font-size:.42rem;color:#4a8cbf">💾 Salvo</span>`:''}
+        ${has('fanfarra')?`<span style="font-size:.42rem;color:#c9a84c">🎵 Som ativo</span>`:''}
+      </div>
+      <div style="display:flex;gap:.4rem">
+        ${has('espelho_erros')?`<span style="font-size:.42rem;color:#c94c4c">⚠ Reportar erro</span>`:''}
+        ${has('codigo_honra')?`<span style="font-size:.42rem;color:#9b59b6">🏆 3 conquistas</span>`:''}
+        ${has('estandarte')?`<span style="font-size:.42rem;color:#888">Perfil: Usuário</span>`:''}
+      </div>
+    </div>`;
+  }
+
+  const wireframeDesktop = hasAnything ? `
+    <div style="width:100%;max-width:460px;background:#0a0a1a;border:2px solid #2a2a40;
+      border-radius:8px;overflow:hidden;display:flex;flex-direction:column;
+      box-shadow:0 0 30px rgba(0,0,0,.6)">
+      <!-- Browser chrome -->
+      <div style="background:#0d0d1e;padding:.3rem .5rem;display:flex;align-items:center;gap:.4rem;
+        border-bottom:1px solid #2a2a40">
+        <div style="display:flex;gap:.2rem">
+          <div style="width:7px;height:7px;border-radius:50%;background:#c94c4c"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:#c9a84c"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:#4cc98a"></div>
+        </div>
+        <div style="flex:1;background:#13132a;border-radius:4px;padding:.12rem .35rem;
+          font-size:.4rem;color:#444">app.lovable.dev/${(S.appName||'meuapp').toLowerCase().replace(/\s+/g,'-')}</div>
+      </div>
+      ${wireDesktopTopNav()}
+      <div style="display:flex;flex:1;min-height:220px">
+        ${wireDesktopSidebar()}
+        ${wireDesktopMain()}
+      </div>
+      ${wireDesktopStatusBar()}
+    </div>` : `<div style="color:var(--muted);font-style:italic;font-size:.82rem;padding:1rem;
+      text-align:center">Nenhuma carta selecionada ainda.</div>`;
+
   const wireframe = hasAnything ? `
     <div style="position:relative;width:220px;min-height:400px;background:#0a0a1a;
       border:3px solid #2a2a40;border-radius:16px;overflow:hidden;
@@ -2689,13 +2944,30 @@ function renderClienteScreen(){
         </div>
       </div>
 
-      <!-- Produto até agora -->
+      <!-- Produto até agora — slider phone/desktop -->
       <div style="background:var(--bg-card);border:1px solid var(--gold-dark);padding:.85rem;display:flex;flex-direction:column;align-items:center">
-        <div style="font-family:'Cinzel',serif;font-size:.65rem;color:var(--gold);
-          text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem;align-self:flex-start">
-          📱 Prévia da Interface
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:.75rem">
+          <div style="font-family:'Cinzel',serif;font-size:.65rem;color:var(--gold);
+            text-transform:uppercase;letter-spacing:.1em">📱 Prévia da Interface</div>
+          <!-- Toggle slider -->
+          <div style="display:flex;align-items:center;gap:.4rem;background:var(--bg);
+            border:1px solid var(--gold-dark);padding:.2rem .35rem">
+            <button id="wf-btn-phone" onclick="setWireframeView('phone')"
+              style="font-family:'Cinzel',serif;font-size:.5rem;padding:.2rem .45rem;
+              border:none;cursor:pointer;transition:all .2s;
+              background:var(--gold);color:var(--bg)">📱 Celular</button>
+            <button id="wf-btn-desktop" onclick="setWireframeView('desktop')"
+              style="font-family:'Cinzel',serif;font-size:.5rem;padding:.2rem .45rem;
+              border:none;cursor:pointer;transition:all .2s;
+              background:transparent;color:var(--muted)">🖥 Desktop</button>
+          </div>
         </div>
-        ${wireframe}
+        <div id="wf-phone" style="width:100%;display:flex;flex-direction:column;align-items:center">
+          ${wireframe}
+        </div>
+        <div id="wf-desktop" style="width:100%;display:none">
+          ${wireframeDesktop}
+        </div>
         <div style="margin-top:.6rem;font-size:.6rem;color:var(--muted);text-align:center">
           ${allSelected.length} funcionalidade${allSelected.length!==1?'s':''} implementada${allSelected.length!==1?'s':''}
         </div>
@@ -3482,9 +3754,10 @@ function renderCardHTML(card, opts={}){
   const hasImg = !!img;
   const dis  = opts.disabled  ? 'disabled' : '';
   const spc  = card.special   ? 'special'  : '';
-  const isPeeked = S.peekCards.has(card.id);
-  const peekCls  = isPeeked   ? 'peeked'   : '';
-  const imgCls   = hasImg     ? 'has-img'  : '';
+  const isPeeked   = S.peekCards.has(card.id);
+  const peekCls    = isPeeked   ? 'peeked'   : '';
+  const imgCls     = hasImg     ? 'has-img'  : '';
+  const isPlanned  = S.backlog.includes(card.id);  // card was committed in the backlog
 
   let onclk = '';
   if(!opts.disabled){
@@ -3492,21 +3765,32 @@ function renderCardHTML(card, opts={}){
     else              onclk = ` onclick="clickCard('${card.id}')"`;
   }
 
+  // Backlog badge — shown top-left when card was planned
+  const backlogBadge = isPlanned
+    ? `<div style="position:absolute;top:4px;left:20px;background:#c9a84c;
+        color:#0d0d1e;font-size:.4rem;padding:.08rem .28rem;
+        font-family:'Cinzel',serif;letter-spacing:.06em;z-index:3;
+        border-radius:0 0 2px 2px">📌 Planejada</div>`
+    : '';
+
   // Art block — full image or emoji placeholder
   const artBlock = hasImg
-    ? `<div class="gc-art">${isPeeked?`<div class="peek-badge">👁</div>`:''}
+    ? `<div class="gc-art">
+         ${isPeeked?`<div class="peek-badge">👁</div>`:''}
+         ${backlogBadge}
          <img src="${img}">
          <div class="gc-cat">${card.cat}</div>
          <div class="gc-name">${card.name}</div>
        </div>`
     : `<div class="gc-art">
+         ${backlogBadge}
          <div class="gc-art-placeholder">${card.emoji}</div>
          <div class="gc-cat">${card.cat}</div>
        </div>`;
 
-  // Text block — shown below art always; for has-img cards: compact
+  // Text block — shown below art always; for has-img cards: name overlaid on art, desc below
   const nameBlock  = hasImg ? '' : `<div class="gc-name">${card.name}</div>`;
-  const descBlock  = hasImg ? '' : `<div class="gc-desc">${card.desc}</div>`;
+  const descBlock  = `<div class="gc-desc">${card.desc}</div>`;
 
   const posHtml = card.pos.txt
     ? `<div class="gc-eff pos"><span>✨</span><span>${card.pos.txt}</span></div>` : '';
@@ -3520,7 +3804,12 @@ function renderCardHTML(card, opts={}){
         👁 ${card.frag.substring(0,72)}…</div>`
     : `<div class="gc-frag-area" style="color:var(--muted)">🔒 Prompt oculto</div>`;
 
-  return `<div class="gcard ${imgCls} ${dis} ${spc} ${peekCls}"${onclk}>
+  // Cards planned in backlog get a subtle golden border emphasis
+  const plannedStyle = isPlanned
+    ? ` style="border-color:var(--gold-dark);box-shadow:inset 0 0 0 1px #c9a84c20"`
+    : '';
+
+  return `<div class="gcard ${imgCls} ${dis} ${spc} ${peekCls}"${onclk}${plannedStyle}>
     ${!hasImg && isPeeked ? `<div class="peek-badge">👁</div>` : ''}
     ${artBlock}
     ${nameBlock}
@@ -4640,15 +4929,7 @@ ${sprintsSection}
 </body></html>`;
 
   // Download
-  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `guilda-relatorio-${S.team.name.replace(/\s+/g,'-').toLowerCase()}-${date.replace(/\//g,'-')}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),10000);
+  safeDownload(html, `guilda-relatorio-${S.team.name.replace(/\s+/g,'-').toLowerCase()}-${date.replace(/\//g,'-')}.html`, 'text/html');
   toast('📄 Relatório exportado! ✓','ok');
 }
 
