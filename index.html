@@ -701,6 +701,34 @@
     .pd-icon{font-size:1.6rem;display:block;margin-bottom:.25rem}
     .pd-name{font-family:'Cinzel',serif;font-size:.52rem;color:var(--text);line-height:1.3}
     .pd-cat{font-size:.46rem;color:var(--muted);margin-top:.15rem}
+    /* ── CREDITS ── */
+    #screen-credits{align-items:center;justify-content:flex-start;background:var(--bg)}
+    .credits-wrap{width:100%;max-width:680px;margin:0 auto;padding:2.5rem 2rem 4rem;overflow-y:auto;height:100%}
+    .credits-back{display:inline-flex;align-items:center;gap:.4rem;font-family:'Cinzel',serif;
+      font-size:.65rem;letter-spacing:.1em;color:var(--muted);background:none;border:none;
+      cursor:pointer;text-transform:uppercase;padding:.3rem 0;transition:color .2s;margin-bottom:2rem}
+    .credits-back:hover{color:var(--gold)}
+    .credits-title{font-family:'Cinzel',serif;font-size:clamp(1.6rem,4vw,2.6rem);font-weight:900;
+      color:var(--gold);text-shadow:0 0 40px #c9a84c30;letter-spacing:.08em;text-align:center;
+      margin-bottom:.4rem}
+    .credits-subtitle{font-size:.82rem;color:var(--muted);font-style:italic;text-align:center;
+      margin-bottom:2.5rem}
+    .credits-divider{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);
+      margin:2rem 0}
+    .credits-section{margin-bottom:2rem}
+    .credits-role{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.25em;
+      color:var(--muted);text-transform:uppercase;text-align:center;margin-bottom:.55rem}
+    .credits-name{font-family:'Cinzel',serif;font-size:1.15rem;color:var(--gold);
+      text-align:center;letter-spacing:.04em;line-height:1.4}
+    /* Bloco estilo créditos de filme — rolagem centralizada */
+    .credits-film-block{text-align:center;padding:1.5rem 1rem;
+      background:linear-gradient(180deg,transparent,#c9a84c06,transparent)}
+    .credits-film-title{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.3em;
+      color:var(--muted);text-transform:uppercase;margin-bottom:1.25rem}
+    .credits-film-entry{margin-bottom:1.1rem}
+    .credits-film-card{font-family:'Cinzel',serif;font-size:.72rem;color:var(--gold);
+      letter-spacing:.06em;margin-bottom:.15rem}
+    .credits-film-author{font-size:.82rem;color:var(--text);font-style:italic}
   </style>
 </head>
 <body>
@@ -733,10 +761,274 @@
     <div class="home-btns">
       <button class="btn btn-lg" onclick="goSetup()">⚔️&nbsp; Iniciar Nova Partida</button>
       <button class="btn" style="margin-top:.25rem" onclick="showScreen('screen-configure')">⚙️&nbsp; Configurações</button>
+      <button class="btn btn-ghost" style="margin-top:.1rem;font-size:.65rem;letter-spacing:.12em" onclick="showScreen('screen-credits')">✦&nbsp; Créditos</button>
     </div>
     <div style="margin-top:3rem;font-size:.72rem;color:var(--muted);line-height:1.8">
       <span style="color:var(--gold);font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.1em">COMO JOGAR</span><br>
       Cada equipe escolhe sua missão → seleciona cartas por sprint → gera o prompt → cria o app no Lovable
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ CREDITS ═══════════════ -->
+<div id="screen-credits" class="screen">
+  <div class="credits-wrap">
+    <button class="credits-back" onclick="showScreen('screen-home')">← Voltar</button>
+
+    <div class="credits-title">Guilda do Código</div>
+    <div class="credits-subtitle">Uma aventura de desenvolvimento ágil</div>
+
+    <div class="credits-divider"></div>
+
+    <!-- ── ARQUITETURA ─────────────────────────── -->
+    <div class="credits-section">
+      <div class="credits-role">Projeto e Arquitetura por:</div>
+      <div class="credits-name">
+        <!-- INSIRA AQUI O(S) NOME(S) DE ARQUITETURA -->
+        Giovanni Rigotti
+      </div>
+    </div>
+
+    <div class="credits-divider"></div>
+
+    <!-- ── DESENVOLVIMENTO ─────────────────────── -->
+    <div class="credits-section">
+      <div class="credits-role">Projeto e Desenvolvimento por:</div>
+      <div class="credits-name">
+        <!-- INSIRA AQUI O(S) NOME(S) DE DESENVOLVIMENTO -->
+        Miguel Machado Rodrigues
+      </div>
+    </div>
+
+    <div class="credits-divider"></div>
+
+    <!-- ── DIREÇÃO DE ARTE ─────────────────────── -->
+    <div class="credits-section">
+      <div class="credits-role">Direção de Arte por:</div>
+      <div class="credits-name">
+        <!-- INSIRA AQUI O(S) NOME(S) DE DIREÇÃO DE ARTE -->
+        Rodrigo Balardin
+      </div>
+    </div>
+
+    <div class="credits-divider"></div>
+
+    <!-- ── MÚSICA ──────────────────────────────── -->
+    <div class="credits-section">
+      <div class="credits-role">Música por:</div>
+      <div class="credits-name">
+        <!-- INSIRA AQUI O(S) NOME(S) / CRÉDITO(S) DA MÚSICA -->
+        Erick Santiago
+      </div>
+    </div>
+
+    <div class="credits-divider"></div>
+
+    <!-- ── IMAGENS DAS CARTAS (estilo créditos de filme) ── -->
+    <div class="credits-film-block">
+      <div class="credits-film-title">Imagens das Cartas</div>
+
+   
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Kim Sokol</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Randy Gallegos</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Michele Giorgi</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Vincent Proce</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Ryan Pancoast</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Kieran Yanner</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Shie Nanahara</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Sam Burley</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Tuan Duong Chu</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Sean Murray</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Raymond Swanland</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Jesper Myrfors</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Dallas Williams</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Dan Murayama Scott</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Daniel Ljunggren</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Kieran Yanner</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Yeong-Hao Han</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Jason A. Engle</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Chris Seaman</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">JB Casacop</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Ryan Yee</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Chris Rahn</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Denys Tsiperko</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Sean Vo</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Joseph Meehan</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Tyler Jacobson</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Brian Valeza</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Rudy Siswanto</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Kekai Kotaki</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Billy Christian</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Eli Minaya</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Kevin Sidharta</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Greg Hildebrandt (misprinted)</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Gal Or</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Serena Malyon</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Diana Cearley</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Franz Vohwinkel</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Gaboleps</div>
+</div>
+
+<div class="credits-film-entry">
+  <div class="credits-film-card"><!-- NOME DA CARTA --></div>
+  <div class="credits-film-author">Jonas De Ro</div>
+</div>
+
+    </div>
+
+    <div class="credits-divider"></div>
+    <div style="text-align:center;font-size:.68rem;color:var(--muted);font-style:italic;padding-bottom:1rem">
+      Feito com auxílio de Claude IA para o Laboratório de Software
     </div>
   </div>
 </div>
@@ -2388,17 +2680,20 @@ function setWireframeView(view){
   const desktop = document.getElementById('wf-desktop');
   const btnP    = document.getElementById('wf-btn-phone');
   const btnD    = document.getElementById('wf-btn-desktop');
+  const label   = document.getElementById('wf-preview-label');
   if(!phone||!desktop) return;
   if(view==='phone'){
     phone.style.display='flex';
     desktop.style.display='none';
     btnP.style.background='var(--gold)';   btnP.style.color='var(--bg)';
     btnD.style.background='transparent';   btnD.style.color='var(--muted)';
+    if(label) label.textContent='📱 Prévia — Celular';
   } else {
     phone.style.display='none';
     desktop.style.display='block';
     btnD.style.background='var(--gold)';   btnD.style.color='var(--bg)';
     btnP.style.background='transparent';   btnP.style.color='var(--muted)';
+    if(label) label.textContent='🖥 Prévia — Desktop';
   }
 }
 
@@ -2948,17 +3243,17 @@ function renderClienteScreen(){
       <div style="background:var(--bg-card);border:1px solid var(--gold-dark);padding:.85rem;display:flex;flex-direction:column;align-items:center">
         <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:.75rem">
           <div style="font-family:'Cinzel',serif;font-size:.65rem;color:var(--gold);
-            text-transform:uppercase;letter-spacing:.1em">📱 Prévia da Interface</div>
-          <!-- Toggle slider -->
-          <div style="display:flex;align-items:center;gap:.4rem;background:var(--bg);
-            border:1px solid var(--gold-dark);padding:.2rem .35rem">
+            text-transform:uppercase;letter-spacing:.1em" id="wf-preview-label">📱 Prévia — Celular</div>
+          <!-- Toggle slider pill -->
+          <div style="display:flex;align-items:center;background:var(--bg);
+            border:1px solid var(--gold-dark);border-radius:2px;overflow:hidden;flex-shrink:0">
             <button id="wf-btn-phone" onclick="setWireframeView('phone')"
-              style="font-family:'Cinzel',serif;font-size:.5rem;padding:.2rem .45rem;
-              border:none;cursor:pointer;transition:all .2s;
-              background:var(--gold);color:var(--bg)">📱 Celular</button>
+              style="font-family:'Cinzel',serif;font-size:.5rem;padding:.3rem .7rem;
+              border:none;cursor:pointer;transition:all .22s;letter-spacing:.06em;
+              background:var(--gold);color:var(--bg);border-right:1px solid var(--gold-dark)">📱 Celular</button>
             <button id="wf-btn-desktop" onclick="setWireframeView('desktop')"
-              style="font-family:'Cinzel',serif;font-size:.5rem;padding:.2rem .45rem;
-              border:none;cursor:pointer;transition:all .2s;
+              style="font-family:'Cinzel',serif;font-size:.5rem;padding:.3rem .7rem;
+              border:none;cursor:pointer;transition:all .22s;letter-spacing:.06em;
               background:transparent;color:var(--muted)">🖥 Desktop</button>
           </div>
         </div>
